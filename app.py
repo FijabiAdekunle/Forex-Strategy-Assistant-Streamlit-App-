@@ -9,23 +9,28 @@ st.set_page_config(page_title="FX Strategy Assistant", layout="wide")
 st.title("📊 Forex Strategy Assistant")
 
 # === SESSION STATE INIT ===
-defaults = {
-    "pair": "EUR/USD",
-    "entry_price": 1.0700,
-    "atr": 0.00185,
-    "sl_multiplier": 1.0,
-    "tp_multiplier": 2.0,
-    "direction": "Buy",
-    "ema_fast": 1.0720,
-    "ema_slow": 1.0695,
-    "rsi": 56.0,
-    "candle_pattern": "None"
-}
+def initialize_session_state():
+    """Initialize all session state variables with default values"""
+    defaults = {
+        "pair": "EUR/USD",
+        "entry_price": 1.0700,
+        "atr": 0.00185,
+        "sl_multiplier": 1.0,
+        "tp_multiplier": 2.0,
+        "direction": "Buy",
+        "ema_fast": 1.0720,
+        "ema_slow": 1.0695,
+        "rsi": 56.0,
+        "candle_pattern": "None",
+        "saved_trades": pd.DataFrame()
+    }
+    
+    for key, val in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = val
 
-# Initialize session state only if it doesn't already exist
-for key, val in defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = val
+# Initialize session state at the start
+initialize_session_state()
 
 # === LOGO AND HEADER ===
 col_logo, col_title = st.columns([1, 5])
@@ -38,51 +43,113 @@ with col_title:
 st.header("Trade Input")
 col1, col2 = st.columns(2)
 with col1:
-    # Only initialize session state for 'pair' if it is not already set
-    if "pair" not in st.session_state:
-        st.session_state.pair = "EUR/USD"  # Default value
+    st.session_state.pair = st.selectbox(
+        "Trading Pair", 
+        ["EUR/USD", "GBP/USD", "XAU/USD"], 
+        index=["EUR/USD", "GBP/USD", "XAU/USD"].index(st.session_state.pair),
+        key="pair_select"
+    )
+    
+    st.session_state.entry_price = st.number_input(
+        "Entry Price", 
+        value=st.session_state.entry_price, 
+        step=0.0001, 
+        format="%.5f", 
+        key="entry_input"
+    )
+    
+    # Dynamic ATR default based on pair
+    atr_default = 14.5 if st.session_state.pair == "XAU/USD" else 0.00185
+    st.session_state.atr = st.number_input(
+        "ATR Value (in price terms)", 
+        value=st.session_state.get("atr", atr_default),
+        key="atr_input"
+    )
 
-    # Use the session_state value for the selectbox without modifying it
-    st.selectbox("Trading Pair", ["EUR/USD", "GBP/USD", "XAU/USD"], index=["EUR/USD", "GBP/USD", "XAU/USD"].index(st.session_state.pair), key="pair")
-
-    st.session_state.entry_price = st.number_input("Entry Price", value=st.session_state.entry_price, step=0.0001, format="%.5f", key="entry_price")
-    st.session_state.atr = st.number_input("ATR Value (in price terms)", value=st.session_state.atr if st.session_state.pair != "XAU/USD" else 14.5, key="atr")
 with col2:
-    st.session_state.sl_multiplier = st.number_input("SL Multiplier", value=st.session_state.sl_multiplier, step=0.1, key="sl_multiplier")
-    st.session_state.tp_multiplier = st.number_input("TP Multiplier", value=st.session_state.tp_multiplier, step=0.1, key="tp_multiplier")
-    st.session_state.direction = st.radio("Trade Direction", ["Buy", "Sell"], index=["Buy", "Sell"].index(st.session_state.direction), key="direction")
-
+    st.session_state.sl_multiplier = st.number_input(
+        "SL Multiplier", 
+        value=st.session_state.sl_multiplier, 
+        step=0.1, 
+        key="sl_input"
+    )
+    
+    st.session_state.tp_multiplier = st.number_input(
+        "TP Multiplier", 
+        value=st.session_state.tp_multiplier, 
+        step=0.1, 
+        key="tp_input"
+    )
+    
+    st.session_state.direction = st.radio(
+        "Trade Direction", 
+        ["Buy", "Sell"], 
+        index=["Buy", "Sell"].index(st.session_state.direction),
+        key="direction_radio"
+    )
 
 # === INDICATOR INPUT ===
 st.header("Indicator Confirmation")
-st.session_state.ema_fast = st.number_input("EMA 10", value=st.session_state.ema_fast, key="ema_fast")
-st.session_state.ema_slow = st.number_input("EMA 50", value=st.session_state.ema_slow, key="ema_slow")
-st.session_state.rsi = st.number_input("RSI (14)", value=st.session_state.rsi, key="rsi")
+st.session_state.ema_fast = st.number_input(
+    "EMA 10", 
+    value=st.session_state.ema_fast, 
+    key="ema_fast_input"
+)
+
+st.session_state.ema_slow = st.number_input(
+    "EMA 50", 
+    value=st.session_state.ema_slow, 
+    key="ema_slow_input"
+)
+
+st.session_state.rsi = st.number_input(
+    "RSI (14)", 
+    value=st.session_state.rsi, 
+    key="rsi_input"
+)
 
 # === CANDLESTICK CONFIRMATION ===
 st.header("🕯️ Candlestick Pattern Checklist")
-st.session_state.candle_pattern = st.selectbox("Select Pattern", ["None", "Bullish Engulfing", "Bearish Engulfing", "Hammer", "Shooting Star", "Doji"], index=["None", "Bullish Engulfing", "Bearish Engulfing", "Hammer", "Shooting Star", "Doji"].index(st.session_state.candle_pattern), key="candle_pattern")
+st.session_state.candle_pattern = st.selectbox(
+    "Select Pattern", 
+    ["None", "Bullish Engulfing", "Bearish Engulfing", "Hammer", "Shooting Star", "Doji"], 
+    index=["None", "Bullish Engulfing", "Bearish Engulfing", "Hammer", "Shooting Star", "Doji"].index(st.session_state.candle_pattern),
+    key="candle_select"
+)
 
 # === SL/TP CALCULATION ===
 if st.session_state.direction == "Buy":
-    sl_price = st.session_state.entry_price - st.session_state.atr * st.session_state.sl_multiplier
-    tp_price = st.session_state.entry_price + st.session_state.atr * st.session_state.tp_multiplier
+    sl_price = st.session_state.entry_price - (st.session_state.atr * st.session_state.sl_multiplier)
+    tp_price = st.session_state.entry_price + (st.session_state.atr * st.session_state.tp_multiplier)
 else:
-    sl_price = st.session_state.entry_price + st.session_state.atr * st.session_state.sl_multiplier
-    tp_price = st.session_state.entry_price - st.session_state.atr * st.session_state.tp_multiplier
+    sl_price = st.session_state.entry_price + (st.session_state.atr * st.session_state.sl_multiplier)
+    tp_price = st.session_state.entry_price - (st.session_state.atr * st.session_state.tp_multiplier)
 
 # === SL/TP OUTPUT ===
 st.header("📈 SL/TP Levels")
-st.metric("Stop Loss", f"{sl_price:.5f}")
-st.metric("Take Profit", f"{tp_price:.5f}")
+col_sl, col_tp = st.columns(2)
+with col_sl:
+    st.metric("Stop Loss", f"{sl_price:.5f}", delta=f"{(sl_price - st.session_state.entry_price):.5f}")
+with col_tp:
+    st.metric("Take Profit", f"{tp_price:.5f}", delta=f"{(tp_price - st.session_state.entry_price):.5f}")
 
 # === INDICATOR ALIGNMENT ===
 st.header("🔍 Indicator Alignment Check")
-ema_alignment = (st.session_state.ema_fast > st.session_state.ema_slow and st.session_state.direction == "Buy") or (st.session_state.ema_fast < st.session_state.ema_slow and st.session_state.direction == "Sell")
-rsi_alignment = (st.session_state.rsi > 50 and st.session_state.direction == "Buy") or (st.session_state.rsi < 50 and st.session_state.direction == "Sell")
+ema_alignment = (
+    (st.session_state.ema_fast > st.session_state.ema_slow and st.session_state.direction == "Buy") or 
+    (st.session_state.ema_fast < st.session_state.ema_slow and st.session_state.direction == "Sell")
+)
 
-st.write(f"**EMA Alignment:** {'✅ Aligned' if ema_alignment else '❌ Not aligned'}")
-st.write(f"**RSI Alignment:** {'✅ Aligned' if rsi_alignment else '❌ Not aligned'}")
+rsi_alignment = (
+    (st.session_state.rsi > 50 and st.session_state.direction == "Buy") or 
+    (st.session_state.rsi < 50 and st.session_state.direction == "Sell")
+)
+
+alignment_col1, alignment_col2 = st.columns(2)
+with alignment_col1:
+    st.write(f"**EMA Alignment:** {'✅ Aligned' if ema_alignment else '❌ Not aligned'}")
+with alignment_col2:
+    st.write(f"**RSI Alignment:** {'✅ Aligned' if rsi_alignment else '❌ Not aligned'}")
 
 if ema_alignment and rsi_alignment and st.session_state.candle_pattern != "None":
     st.success("All indicators + candlestick pattern align ✅")
@@ -109,55 +176,122 @@ if st.button("Save Trade"):
         "RSI": [st.session_state.rsi],
         "Candlestick Pattern": [st.session_state.candle_pattern]
     }
-    df = pd.DataFrame(trade_data)
+    
+    new_trade = pd.DataFrame(trade_data)
+    
     try:
-        existing = pd.read_csv("saved_trades.csv")
-        df = pd.concat([existing, df], ignore_index=True)
+        # Try to load existing trades
+        existing_trades = pd.read_csv("saved_trades.csv")
+        updated_trades = pd.concat([existing_trades, new_trade], ignore_index=True)
     except FileNotFoundError:
-        pass
-    df.to_csv("saved_trades.csv", index=False)
-    st.success("Trade saved to saved_trades.csv ✅")
+        # If file doesn't exist, create new dataframe
+        updated_trades = new_trade
+    
+    # Save to CSV and update session state
+    updated_trades.to_csv("saved_trades.csv", index=False)
+    st.session_state.saved_trades = updated_trades
+    st.success("Trade saved successfully! ✅")
 
 # === UPLOAD BACKTESTING CSV ===
 st.header("📂 Upload Backtesting CSV")
-backtest_file = st.file_uploader("Upload your backtest result CSV", type="csv")
-if backtest_file:
+backtest_file = st.file_uploader("Upload your backtest result CSV", type=["csv"])
+if backtest_file is not None:
     backtest_df = pd.read_csv(backtest_file)
-    st.dataframe(backtest_df)
-    st.success("Backtesting data loaded ✅")
+    st.dataframe(backtest_df.head())
+    st.success("Backtesting data loaded successfully! ✅")
 
 # === SAVED TRADES DASHBOARD ===
 st.header("📋 Saved Trades Dashboard")
-try:
-    saved_trades = pd.read_csv("saved_trades.csv")
-    filters = st.multiselect("Filter by Pair", saved_trades["Pair"].unique())
-    if filters:
-        saved_trades = saved_trades[saved_trades["Pair"].isin(filters)]
-    st.dataframe(saved_trades)
 
-    saved_trades["Outcome"] = saved_trades.apply(
-        lambda row: "Win" if (row["Direction"] == "Buy" and row["TP"] > row["Entry"]) or (row["Direction"] == "Sell" and row["TP"] < row["Entry"]) else "Loss", axis=1)
-    fig = px.pie(saved_trades, names="Outcome", title="Trade Outcomes")
-    st.plotly_chart(fig)
-except FileNotFoundError:
+# Load saved trades from file if not in session state
+if st.session_state.saved_trades.empty:
+    try:
+        st.session_state.saved_trades = pd.read_csv("saved_trades.csv")
+    except FileNotFoundError:
+        st.session_state.saved_trades = pd.DataFrame()
+
+if not st.session_state.saved_trades.empty:
+    # Filters
+    pair_filter = st.multiselect(
+        "Filter by Pair", 
+        options=st.session_state.saved_trades["Pair"].unique(),
+        default=st.session_state.saved_trades["Pair"].unique()
+    )
+    
+    filtered_trades = st.session_state.saved_trades[
+        st.session_state.saved_trades["Pair"].isin(pair_filter)
+    ]
+    
+    st.dataframe(filtered_trades)
+    
+    # Calculate outcomes
+    filtered_trades["Outcome"] = filtered_trades.apply(
+        lambda row: "Win" if (
+            (row["Direction"] == "Buy" and row["TP"] > row["Entry"]) or 
+            (row["Direction"] == "Sell" and row["TP"] < row["Entry"])
+        ) else "Loss", 
+        axis=1
+    )
+    
+    # Visualization
+    fig1 = px.pie(
+        filtered_trades, 
+        names="Outcome", 
+        title="Trade Outcomes Distribution"
+    )
+    
+    fig2 = px.bar(
+        filtered_trades,
+        x="Pair",
+        color="Outcome",
+        title="Trades by Currency Pair",
+        barmode="group"
+    )
+    
+    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig2, use_container_width=True)
+    
+    # Export options
+    st.header("📤 Export Options")
+    export_format = st.selectbox(
+        "Select export format",
+        ["CSV", "Excel", "JSON"]
+    )
+    
+    if export_format == "CSV":
+        csv = filtered_trades.to_csv(index=False)
+        st.download_button(
+            "Download CSV",
+            data=csv,
+            file_name="filtered_trades.csv",
+            mime="text/csv"
+        )
+    elif export_format == "Excel":
+        excel = BytesIO()
+        filtered_trades.to_excel(excel, index=False)
+        st.download_button(
+            "Download Excel",
+            data=excel.getvalue(),
+            file_name="filtered_trades.xlsx",
+            mime="application/vnd.ms-excel"
+        )
+    elif export_format == "JSON":
+        json = filtered_trades.to_json(orient="records")
+        st.download_button(
+            "Download JSON",
+            data=json,
+            file_name="filtered_trades.json",
+            mime="application/json"
+        )
+else:
     st.info("No saved trades yet. Save your first trade above.")
 
-# === EXPORT ===
-st.header("🖼️ Export Dashboard Visual")
-export_option = st.selectbox("Choose Export Format", ["None", "Export as CSV", "Export as PNG"])
-if export_option == "Export as CSV":
-    st.download_button("📥 Download CSV", saved_trades.to_csv(index=False), "trades.csv", "text/csv")
-elif export_option == "Export as PNG":
-    fig = px.bar(saved_trades, x="Pair", y="Entry", color="Outcome", title="Saved Trades by Pair")
-    buf = BytesIO()
-    fig.write_image(buf, format="png")
-    st.download_button("📸 Download PNG", data=buf.getvalue(), file_name="dashboard.png", mime="image/png")
-
 # === TRADINGVIEW LINK ===
-st.info("⚠️ TradingView charts cannot be embedded directly due to connection policy. Open chart manually in browser.")
+st.header("📊 Chart Analysis")
+st.info("For detailed chart analysis, visit TradingView:")
 tv_url_map = {
     "EUR/USD": "https://www.tradingview.com/chart/?symbol=FX:EURUSD",
     "GBP/USD": "https://www.tradingview.com/chart/?symbol=FX:GBPUSD",
     "XAU/USD": "https://www.tradingview.com/chart/?symbol=FX:XAUUSD"
 }
-st.markdown(f"[📈 View {st.session_state.pair} chart on TradingView]({tv_url_map[st.session_state.pair]})")
+st.markdown(f"[Open {st.session_state.pair} chart on TradingView ↗️]({tv_url_map[st.session_state.pair]})")
