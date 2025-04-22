@@ -12,7 +12,7 @@ st.title("📊 Forex Strategy Assistant")
 # === LOGO AND HEADER ===
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    st.image("https://github.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/blob/main/Logo%20Images/TopTech_Logo.PNG", width=100)
+    st.image("https://raw.githubusercontent.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/main/Logo%20Images/TopTech_Logo.PNG", width=100)
 with col_title:
     st.markdown("""
     ### TopTech Digital Intelligence
