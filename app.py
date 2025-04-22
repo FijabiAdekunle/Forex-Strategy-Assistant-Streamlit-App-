@@ -38,17 +38,20 @@ with col_title:
 st.header("Trade Input")
 col1, col2 = st.columns(2)
 with col1:
-    # Initialize the pair value if it's not already set
+    # Only initialize session state for 'pair' if it is not already set
     if "pair" not in st.session_state:
         st.session_state.pair = "EUR/USD"  # Default value
 
-    st.session_state.pair = st.selectbox("Trading Pair", ["EUR/USD", "GBP/USD", "XAU/USD"], index=["EUR/USD", "GBP/USD", "XAU/USD"].index(st.session_state.pair), key="pair")
+    # Use the session_state value for the selectbox without modifying it
+    st.selectbox("Trading Pair", ["EUR/USD", "GBP/USD", "XAU/USD"], index=["EUR/USD", "GBP/USD", "XAU/USD"].index(st.session_state.pair), key="pair")
+
     st.session_state.entry_price = st.number_input("Entry Price", value=st.session_state.entry_price, step=0.0001, format="%.5f", key="entry_price")
     st.session_state.atr = st.number_input("ATR Value (in price terms)", value=st.session_state.atr if st.session_state.pair != "XAU/USD" else 14.5, key="atr")
 with col2:
     st.session_state.sl_multiplier = st.number_input("SL Multiplier", value=st.session_state.sl_multiplier, step=0.1, key="sl_multiplier")
     st.session_state.tp_multiplier = st.number_input("TP Multiplier", value=st.session_state.tp_multiplier, step=0.1, key="tp_multiplier")
     st.session_state.direction = st.radio("Trade Direction", ["Buy", "Sell"], index=["Buy", "Sell"].index(st.session_state.direction), key="direction")
+
 
 # === INDICATOR INPUT ===
 st.header("Indicator Confirmation")
