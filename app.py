@@ -32,13 +32,16 @@ col_logo, col_title = st.columns([1, 5])
 with col_logo:
     st.image("https://raw.githubusercontent.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/main/Logo%20Images/TopTech_Logo.PNG", width=100)
 with col_title:
-    st.markdown("### TopTech Digital Intelligence Ltd.\nUse this app to calculate SL/TP levels using ATR, validate signal alignment, check candlestick confirmation, and manage your trades.")
+    st.markdown("### TopTech Digital Intelligence\nUse this app to calculate SL/TP levels using ATR, validate signal alignment, check candlestick confirmation, and manage your trades.")
 
 # === TRADE INPUT SECTION ===
 st.header("Trade Input")
 col1, col2 = st.columns(2)
 with col1:
-    # Ensure `st.session_state.pair` is set before passing to selectbox.
+    # Initialize the pair value if it's not already set
+    if "pair" not in st.session_state:
+        st.session_state.pair = "EUR/USD"  # Default value
+
     st.session_state.pair = st.selectbox("Trading Pair", ["EUR/USD", "GBP/USD", "XAU/USD"], index=["EUR/USD", "GBP/USD", "XAU/USD"].index(st.session_state.pair), key="pair")
     st.session_state.entry_price = st.number_input("Entry Price", value=st.session_state.entry_price, step=0.0001, format="%.5f", key="entry_price")
     st.session_state.atr = st.number_input("ATR Value (in price terms)", value=st.session_state.atr if st.session_state.pair != "XAU/USD" else 14.5, key="atr")
