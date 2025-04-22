@@ -130,4 +130,4 @@ try:
 
     saved_trades["Outcome"] = saved_trades.apply(
         lambda row: "Win" if (row["Direction"] == "Buy" and row["TP"] > row["Entry"]) or (row["Direction"] == "Sell" and row["TP"] < row["Entry"]) else "Loss", axis=1)
-    fig = px.pie(saved
+    fig = px.pie(saved)
