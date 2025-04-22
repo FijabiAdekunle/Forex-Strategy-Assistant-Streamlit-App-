@@ -130,4 +130,7 @@ try:
 
     saved_trades["Outcome"] = saved_trades.apply(
         lambda row: "Win" if (row["Direction"] == "Buy" and row["TP"] > row["Entry"]) or (row["Direction"] == "Sell" and row["TP"] < row["Entry"]) else "Loss", axis=1)
-    fig = px.pie(saved)
+    fig = px.pie(saved_trades, names="Outcome", title="Trade Outcomes")
+    st.plotly_chart(fig)
+except FileNotFoundError:
+    st.info("No saved trades yet. Save your first trade above.")
