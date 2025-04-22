@@ -38,6 +38,7 @@ with col_title:
 st.header("Trade Input")
 col1, col2 = st.columns(2)
 with col1:
+    # Ensure `st.session_state.pair` is set before passing to selectbox.
     st.session_state.pair = st.selectbox("Trading Pair", ["EUR/USD", "GBP/USD", "XAU/USD"], index=["EUR/USD", "GBP/USD", "XAU/USD"].index(st.session_state.pair), key="pair")
     st.session_state.entry_price = st.number_input("Entry Price", value=st.session_state.entry_price, step=0.0001, format="%.5f", key="entry_price")
     st.session_state.atr = st.number_input("ATR Value (in price terms)", value=st.session_state.atr if st.session_state.pair != "XAU/USD" else 14.5, key="atr")
@@ -134,3 +135,23 @@ try:
     st.plotly_chart(fig)
 except FileNotFoundError:
     st.info("No saved trades yet. Save your first trade above.")
+
+# === EXPORT ===
+st.header("🖼️ Export Dashboard Visual")
+export_option = st.selectbox("Choose Export Format", ["None", "Export as CSV", "Export as PNG"])
+if export_option == "Export as CSV":
+    st.download_button("📥 Download CSV", saved_trades.to_csv(index=False), "trades.csv", "text/csv")
+elif export_option == "Export as PNG":
+    fig = px.bar(saved_trades, x="Pair", y="Entry", color="Outcome", title="Saved Trades by Pair")
+    buf = BytesIO()
+    fig.write_image(buf, format="png")
+    st.download_button("📸 Download PNG", data=buf.getvalue(), file_name="dashboard.png", mime="image/png")
+
+# === TRADINGVIEW LINK ===
+st.info("⚠️ TradingView charts cannot be embedded directly due to connection policy. Open chart manually in browser.")
+tv_url_map = {
+    "EUR/USD": "https://www.tradingview.com/chart/?symbol=FX:EURUSD",
+    "GBP/USD": "https://www.tradingview.com/chart/?symbol=FX:GBPUSD",
+    "XAU/USD": "https://www.tradingview.com/chart/?symbol=FX:XAUUSD"
+}
+st.markdown(f"[📈 View {st.session_state.pair} chart on TradingView]({tv_url_map[st.session_state.pair]})")
