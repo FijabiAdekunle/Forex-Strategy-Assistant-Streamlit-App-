@@ -21,6 +21,8 @@ defaults = {
     "rsi": 56.0,
     "candle_pattern": "None"
 }
+
+# Initialize session state only if it doesn't already exist
 for key, val in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = val
@@ -30,7 +32,7 @@ col_logo, col_title = st.columns([1, 5])
 with col_logo:
     st.image("https://raw.githubusercontent.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/main/Logo%20Images/TopTech_Logo.PNG", width=100)
 with col_title:
-    st.markdown("### TopTech Digital Intelligence LLC\nUse this app to calculate SL/TP levels using ATR, validate signal alignment, check candlestick confirmation, and manage your trades.")
+    st.markdown("### TopTech Digital Intelligence\nUse this app to calculate SL/TP levels using ATR, validate signal alignment, check candlestick confirmation, and manage your trades.")
 
 # === TRADE INPUT SECTION ===
 st.header("Trade Input")
@@ -128,27 +130,4 @@ try:
 
     saved_trades["Outcome"] = saved_trades.apply(
         lambda row: "Win" if (row["Direction"] == "Buy" and row["TP"] > row["Entry"]) or (row["Direction"] == "Sell" and row["TP"] < row["Entry"]) else "Loss", axis=1)
-    fig = px.pie(saved_trades, names="Outcome", title="Trade Outcomes")
-    st.plotly_chart(fig)
-except FileNotFoundError:
-    st.info("No saved trades yet. Save your first trade above.")
-
-# === EXPORT ===
-st.header("🖼️ Export Dashboard Visual")
-export_option = st.selectbox("Choose Export Format", ["None", "Export as CSV", "Export as PNG"])
-if export_option == "Export as CSV":
-    st.download_button("📥 Download CSV", saved_trades.to_csv(index=False), "trades.csv", "text/csv")
-elif export_option == "Export as PNG":
-    fig = px.bar(saved_trades, x="Pair", y="Entry", color="Outcome", title="Saved Trades by Pair")
-    buf = BytesIO()
-    fig.write_image(buf, format="png")
-    st.download_button("📸 Download PNG", data=buf.getvalue(), file_name="dashboard.png", mime="image/png")
-
-# === TRADINGVIEW LINK ===
-st.info("⚠️ TradingView charts cannot be embedded directly due to connection policy. Open chart manually in browser.")
-tv_url_map = {
-    "EUR/USD": "https://www.tradingview.com/chart/?symbol=FX:EURUSD",
-    "GBP/USD": "https://www.tradingview.com/chart/?symbol=FX:GBPUSD",
-    "XAU/USD": "https://www.tradingview.com/chart/?symbol=FX:XAUUSD"
-}
-st.markdown(f"[📈 View {st.session_state.pair} chart on TradingView]({tv_url_map[st.session_state.pair]})")
+    fig = px.pie(saved
