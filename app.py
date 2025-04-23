@@ -4,6 +4,8 @@ from datetime import datetime
 import plotly.express as px
 from io import BytesIO
 import yfinance as yf 
+import requests  # For API fallbacks
+from PIL import Image  # For logo handling
 
 # === APP CONFIGURATION ===
 st.set_page_config(page_title="FX Strategy Assistant", layout="wide")
@@ -38,7 +40,11 @@ col_logo, col_title = st.columns([1, 5])
 with col_logo:
     st.image("https://raw.githubusercontent.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/main/Logo%20Images/TopTech_Logo.PNG", width=100)
 with col_title:
-    st.markdown("### TopTech Digital Intelligence\nUse this app to calculate SL/TP levels using ATR, validate signal alignment, check candlestick confirmation, and manage your trades.")
+    st.markdown("""
+    ### TopTech Data Intelligence  
+    *Precision Trading Analytics*
+    """)
+
 
 # === TRADE INPUT SECTION ===
 st.header("Trade Input")
@@ -51,7 +57,7 @@ with col1:
         key="pair_select"
     )
     
-    # Replace your entry price widget with this code
+    # Entry Price 
 new_entry = st.number_input(
     "Entry Price",
     value=float(st.session_state.entry_price),
@@ -313,12 +319,23 @@ st.markdown(f"[Open {st.session_state.pair} chart on TradingView ↗️]({tv_url
 
 # Live price function 
 def get_live_price(pair):
-    symbol = {
-        "XAU/USD": "GC=F",
+    """Reliable price fetching with single fallback"""
+    symbol_map = {
         "EUR/USD": "EURUSD=X",
-        "GBP/USD": "GBPUSD=X"
-    }.get(pair)
-    return yf.download(symbol, period="1d", interval="1m").iloc[-1].Close
+        "GBP/USD": "GBPUSD=X", 
+        "XAU/USD": "GC=F"
+    }
+    
+    # Try Yahoo Finance first
+    try:
+        data = yf.download(symbol_map[pair], period="1d", interval="15m")
+        if not data.empty:
+            return data["Close"].iloc[-1]
+    except:
+        pass
+    
+    # Fallback to manual entry
+    return st.session_state.entry_price
 
 # Position sizing formula
 def calculate_position_size(account_size=10000, risk_pct=1.0):
@@ -334,10 +351,40 @@ st.components.v1.iframe(
 
 
 # -------------------------------------------------------------------
-# NEW SIDEBAR TOOLS 
+# SIDEBAR TOOLS 
 # -------------------------------------------------------------------
 with st.sidebar:
     st.header("🧰 Trading Toolkit")
+
+with st.sidebar:
+    st.header("🧮 Risk Tools")
+    
+    # Account balance with new limits
+    account = st.number_input(
+        "Account Balance ($)", 
+        min_value=10, 
+        max_value=100000,
+        value=10000,
+        step=100
+    )
+    
+    # Smart position sizing
+    risk_pct = st.slider("Risk %", 0.5, 5.0, 1.0, step=0.1)
+    risk_amount = account * risk_pct / 100
+    distance_pips = abs(st.session_state.entry_price - sl_price) * (10000 if "USD" in st.session_state.pair else 1)
+    lots = risk_amount / (distance_pips * 10)
+    
+    st.metric(
+        "Max Position", 
+        f"{lots:.2f} lots",
+        help=f"Risking ${risk_amount:.2f}"
+    )
+    
+    # Simple calendar link
+    st.markdown("""
+    ---
+    📅 [Economic Calendar](https://www.tradingview.com/economic-calendar/)
+    """)
     
     # ----- LIVE PRICE WIDGET -----
     with st.expander("📊 Live Market Data", expanded=True):
@@ -403,3 +450,9 @@ def get_live_price(pair):
     }
     data = yf.download(symbol_map[pair], period="1d", interval="1m")
     return data["Close"].iloc[-1]
+
+# === FOOTER ===
+st.markdown("""
+---
+<small>© 2025 TopTech Data Intelligence LLC | Analytics for informed decisions</small>
+""", unsafe_allow_html=True)
