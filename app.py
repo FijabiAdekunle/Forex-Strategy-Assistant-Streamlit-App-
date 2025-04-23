@@ -330,7 +330,7 @@ st.components.v1.iframe(
     "https://www.tradingview.com/economic-calendar/",
     height=600,
     scrolling=True
-). that,s the existing app.py code with just add last two sections. Kindly update this to the current status
+)
 
 # ===== [ADD THIS AFTER TRADINGVIEW LINK SECTION] =====
 # -------------------------------------------------------------------
