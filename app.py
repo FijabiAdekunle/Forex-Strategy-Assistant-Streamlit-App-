@@ -50,13 +50,19 @@ with col1:
         key="pair_select"
     )
     
-    st.session_state.entry_price = st.number_input(
-        "Entry Price", 
-        value=st.session_state.entry_price, 
-        step=0.0001, 
-        format="%.5f", 
-        key="entry_input"
-    )
+    # Replace your entry price widget with this code
+new_entry = st.number_input(
+    "Entry Price",
+    value=float(st.session_state.entry_price),
+    step=0.00001,
+    format="%.5f",
+    key="entry_price_widget"  # Unique key
+)
+
+# Update session state only when value changes
+if new_entry != st.session_state.entry_price:
+    st.session_state.entry_price = new_entry
+    st.rerun()  # Force refresh to update calculations
     
     # Dynamic ATR default based on pair
    # Get default ATR based on selected pair
