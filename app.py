@@ -309,3 +309,24 @@ tv_url_map = {
     "XAU/USD": "https://www.tradingview.com/chart/?symbol=FX:XAUUSD"
 }
 st.markdown(f"[Open {st.session_state.pair} chart on TradingView ↗️]({tv_url_map[st.session_state.pair]})")
+
+# Live price function 
+def get_live_price(pair):
+    symbol = {
+        "XAU/USD": "GC=F",
+        "EUR/USD": "EURUSD=X",
+        "GBP/USD": "GBPUSD=X"
+    }.get(pair)
+    return yf.download(symbol, period="1d", interval="1m").iloc[-1].Close
+
+# Position sizing formula
+def calculate_position_size(account_size=10000, risk_pct=1.0):
+    price_diff = abs(st.session_state.entry_price - sl_price)
+    return (account_size * risk_pct/100) / price_diff
+
+# Using TradingView's calendar
+st.components.v1.iframe(
+    "https://www.tradingview.com/economic-calendar/",
+    height=600,
+    scrolling=True
+)
