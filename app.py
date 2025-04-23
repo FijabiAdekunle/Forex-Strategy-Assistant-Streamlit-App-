@@ -41,7 +41,7 @@ with col_logo:
     st.image("https://raw.githubusercontent.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/main/Logo%20Images/TopTech_Logo.PNG", width=100)
 with col_title:
     st.markdown("""
-    ### TopTech Data Intelligence  
+    ### TopTech Digital Intelligence LLC
     *Precision Trading Analytics*
     """)
 
@@ -359,7 +359,7 @@ with st.sidebar:
 with st.sidebar:
     st.header("🧮 Risk Tools")
     
-    # Account balance with new limits
+    # Account balance 
     account = st.number_input(
         "Account Balance ($)", 
         min_value=10, 
@@ -405,9 +405,9 @@ with st.sidebar:
     with st.expander("🧮 Position Sizer", expanded=True):
         account_size = st.number_input(
             "Account Balance ($)", 
-            min_value=100, 
+            min_value=10, 
             value=10000,
-            step=1000
+            step=10
         )
         risk_pct = st.slider(
             "Risk % per Trade", 
@@ -454,5 +454,5 @@ def get_live_price(pair):
 # === FOOTER ===
 st.markdown("""
 ---
-<small>© 2025 TopTech Data Intelligence LLC | Analytics for informed decisions</small>
+<small>© 2025 TopTech Digital Intelligence LLC | Analytics for informed decisions</small>
 """, unsafe_allow_html=True)
