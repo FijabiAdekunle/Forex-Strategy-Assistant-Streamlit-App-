@@ -59,13 +59,16 @@ with col1:
     )
     
     # Dynamic ATR default based on pair
-    atr_default = 14.5 if st.session_state.pair == "XAU/USD" else 0.00185
-    st.session_state.atr = st.number_input(
-        "ATR Value (in price terms)", 
-        value=st.session_state.get("atr", atr_default),
-        key="atr_input"
-    )
+   # Get default ATR based on selected pair
+atr_default = 14.50 if st.session_state.pair == "XAU/USD" else 0.00185
 
+st.session_state.atr = st.number_input(
+    "ATR Value (in price terms)",
+    value=float(st.session_state.get("atr", atr_default)),  # Use dynamic default
+    step=0.00001 if st.session_state.pair != "XAU/USD" else 0.01,  # Adjust step based on pair
+    format="%.5f" if st.session_state.pair != "XAU/USD" else "%.2f",  # Show 2 decimals for gold
+    key="atr_input_unique"
+)
 with col2:
     st.session_state.sl_multiplier = st.number_input(
         "SL Multiplier", 
@@ -91,16 +94,21 @@ with col2:
 # === INDICATOR INPUT ===
 st.header("Indicator Confirmation")
 st.session_state.ema_fast = st.number_input(
-    "EMA 10", 
-    value=st.session_state.ema_fast, 
-    key="ema_fast_input"
+    "EMA 10",
+    value=float(st.session_state.ema_fast),
+    step=0.00001,
+    format="%.5f",
+    key="ema_fast_unique"
 )
 
 st.session_state.ema_slow = st.number_input(
-    "EMA 50", 
-    value=st.session_state.ema_slow, 
-    key="ema_slow_input"
+    "EMA 50",
+    value=float(st.session_state.ema_slow),
+    step=0.00001,
+    format="%.5f",
+    key="ema_slow_unique"
 )
+
 
 st.session_state.rsi = st.number_input(
     "RSI (14)", 
