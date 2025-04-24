@@ -1,7 +1,3 @@
-@st.cache_data(ttl=60)  # Cache for 1 minute
-def get_cached_price(pair):
-    return get_live_price(pair)
-
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -10,6 +6,12 @@ from io import BytesIO
 import yfinance as yf 
 import requests  # For API fallbacks
 from PIL import Image  # For logo handling
+
+# =====  CACHE DECORATORS =====
+@st.cache_data(ttl=60)  # Now this works because 'st' is defined
+def get_live_price(pair):
+    # Your price fetching logic here
+    pass
 
 # === APP CONFIGURATION ===
 st.set_page_config(page_title="FX Strategy Assistant", layout="wide")
