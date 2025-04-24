@@ -463,7 +463,7 @@ def get_live_price(pair):
         st.error(f"Data fetch error: {str(e)}")
         return None
     
-    with st.sidebar:
+with st.sidebar:
     current_price = get_live_price(st.session_state.pair)
     
     if current_price is not None:
@@ -478,7 +478,7 @@ def get_live_price(pair):
             label=f"Manual {st.session_state.pair}",
             value=f"{st.session_state.entry_price:.5f}"
         )
-        
+
 # === FOOTER ===
 st.markdown("""
 ---
