@@ -48,7 +48,7 @@ with col_logo:
 with col_title:
     st.markdown("""
     ### TopTech Digital Intelligence LLC
-    *Precision Trading Analytics*
+          *Precision Trading Analytics*
     """)
 
 
