@@ -44,7 +44,7 @@ initialize_session_state()
 # === LOGO AND HEADER ===
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    st.image("https://i.postimg.cc/tJBWhFpx/Top-Tech-Logo.png", width=100)
+    st.image("https://i.postimg.cc/tJBWhFpx/Top-Tech-Logo.png", width=90)
 with col_title:
     st.markdown("""
     ### TopTech Digital Intelligence LLC
