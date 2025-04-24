@@ -442,15 +442,43 @@ with st.sidebar:
 
 # =====  HELPER FUNCTION  =====
 def get_live_price(pair):
-    """Fetch live price for selected pair"""
+    """Safely fetch live price with multiple fallbacks"""
     symbol_map = {
         "EUR/USD": "EURUSD=X",
         "GBP/USD": "GBPUSD=X",
         "XAU/USD": "GC=F"
     }
-    data = yf.download(symbol_map[pair], period="1d", interval="1m")
-    return data["Close"].iloc[-1]
-
+    
+    try:
+        # Try Yahoo Finance first
+        data = yf.download(symbol_map[pair], period="1d", interval="15m", progress=False)
+        if not data.empty and not pd.isna(data["Close"].iloc[-1]):
+            return float(data["Close"].iloc[-1])
+        
+        # Fallback to 1-hour data if 15m fails
+        data = yf.download(symbol_map[pair], period="2d", interval="1h", progress=False)
+        return float(data["Close"].iloc[-1]) if not data.empty else None
+        
+    except Exception as e:
+        st.error(f"Data fetch error: {str(e)}")
+        return None
+    
+    with st.sidebar:
+    current_price = get_live_price(st.session_state.pair)
+    
+    if current_price is not None:
+        st.metric(
+            label=f"Live {st.session_state.pair}",
+            value=f"{current_price:.5f}",
+            delta=f"{(current_price - st.session_state.entry_price):.5f}"
+        )
+    else:
+        st.warning("Live data unavailable")
+        st.metric(
+            label=f"Manual {st.session_state.pair}",
+            value=f"{st.session_state.entry_price:.5f}"
+        )
+        
 # === FOOTER ===
 st.markdown("""
 ---
