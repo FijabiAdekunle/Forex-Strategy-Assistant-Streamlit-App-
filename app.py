@@ -326,24 +326,23 @@ tv_url_map = {
 }
 st.markdown(f"[Open {st.session_state.pair} chart on TradingView ↗️]({tv_url_map[st.session_state.pair]})")
 
-# Live price function 
 def get_live_price(pair):
-    """Reliable price fetching with single fallback"""
+    """Fetch live price with proper error handling"""
     symbol_map = {
         "EUR/USD": "EURUSD=X",
         "GBP/USD": "GBPUSD=X", 
         "XAU/USD": "GC=F"
     }
     
-    # Try Yahoo Finance first
+    # Try Yahoo Finance API (new method)
     try:
-        data = yf.download(symbol_map[pair], period="1d", interval="15m")
+        data = yf.Ticker(symbol_map[pair]).history(period="1d", interval="15m")
         if not data.empty:
-            return data["Close"].iloc[-1]
-    except:
-        pass
+            return float(data["Close"].iloc[-1])
+    except Exception as e:
+        st.error(f"YFinance error: {str(e)[:100]}")
     
-    # Fallback to manual entry
+    # Fallback to manual entry price
     return st.session_state.entry_price
 
 # Position sizing formula
@@ -365,89 +364,68 @@ st.components.v1.iframe(
 with st.sidebar:
     st.header("📊 Trading Toolkit")
     
-    # Live Prices
-    with st.expander("Live Market Data", expanded=True):
-        current_price = get_live_price(st.session_state.pair)
-        if current_price:
-            st.metric(
-                f"Live {st.session_state.pair}",
-                f"{current_price:.5f}",
-                delta=f"{(current_price - st.session_state.entry_price):.5f}"
-            )
-        else:
-            st.warning("Using manual entry price")
-    
-    # Risk Calculator
-    with st.expander("Risk Management", expanded=True):
-        account = st.number_input(
-    "Account Balance ($)", 
-    min_value=10, 
-    max_value=100000,
-    value=10000,
-    step=100,
-    on_change=lambda: st.session_state.update({k: float(v) for k,v in st.session_state.items() if isinstance(v, (int, float))})
-)
-    
-    # Simple calendar link
-    st.markdown("""
-    ---
-    📅 [Economic Calendar](https://www.tradingview.com/economic-calendar/)
-    """)
-    
     # ----- LIVE PRICE WIDGET -----
-    with st.expander("📊 Live Market Data", expanded=True):
+    with st.expander("Live Market Data", expanded=True):
         try:
             current_price = get_live_price(st.session_state.pair)
-            st.metric(
-                label=f"Live {st.session_state.pair}",
-                value=f"{current_price:.5f}",
-                delta=f"{(current_price - st.session_state.entry_price):.5f}"
-            )
-            if st.button("Update Entry Price"):
-                st.session_state.entry_price = current_price
-                st.rerun()
+            
+            # Handle both float and Series returns
+            if isinstance(current_price, (float, int)):
+                st.metric(
+                    label=f"Live {st.session_state.pair}",
+                    value=f"{current_price:.5f}",
+                    delta=f"{(current_price - st.session_state.entry_price):.5f}" 
+                    if st.session_state.entry_price else None
+                )
+                if st.button("Update Entry Price"):
+                    st.session_state.entry_price = current_price
+                    st.rerun()
+            else:
+                st.warning("Using manual entry price")
+                st.metric(
+                    label=f"Manual {st.session_state.pair}",
+                    value=f"{st.session_state.entry_price:.5f}"
+                )
+                
         except Exception as e:
-            st.warning(f"Live data unavailable: {str(e)}")
+            st.error(f"Data error: {str(e)[:200]}")
     
     # ----- RISK CALCULATOR -----
-    with st.expander("🧮 Position Sizer", expanded=True):
+    with st.expander("Risk Management", expanded=True):
         account_size = st.number_input(
             "Account Balance ($)", 
             min_value=10, 
             value=10000,
-            step=10
+            step=100,
+            key="account_size"
         )
         risk_pct = st.slider(
             "Risk % per Trade", 
             min_value=0.1, 
             max_value=10.0, 
             value=1.0, 
-            step=0.1
+            step=0.1,
+            key="risk_pct"
         )
         
-        # Dynamic pip value calculation
-        pip_value = 0.0001 if "/" in st.session_state.pair else 0.01
-        risk_amount = account_size * (risk_pct / 100)
         price_diff = abs(st.session_state.entry_price - sl_price)
-        position_size = risk_amount / price_diff
-        
-        st.metric(
-            "Max Position", 
-            f"{position_size:.2f} lots",
-            help=f"Risking ${risk_amount:.2f} ({risk_pct}%)"
-        )
-        
-        # Risk visualization
-        st.progress(risk_pct/10, text=f"Risk Level: {risk_pct}%")
+        if price_diff > 0:  # Prevent division by zero
+            position_size = (account_size * risk_pct/100) / price_diff
+            st.metric(
+                "Max Position", 
+                f"{position_size:.2f} lots",
+                help=f"Risking ${account_size * risk_pct/100:.2f}"
+            )
     
     # ----- ECONOMIC CALENDAR LINK -----
     st.markdown("""
     <div style="margin-top:20px;padding:10px;background:#2E86C1;border-radius:5px">
     <h4 style="color:white;margin:0">📅 Economic Calendar</h4>
-    <a href="https://www.tradingview.com/economic-calendar/" target="_blank" style="color:white">View Important Events →</a>
+    <a href="https://www.tradingview.com/economic-calendar/" 
+       target="_blank" 
+       style="color:white">View Important Events →</a>
     </div>
     """, unsafe_allow_html=True)
-
 # =====  HELPER FUNCTION  =====
 def get_live_price(pair):
     """Robust price fetcher with multiple fallbacks"""
