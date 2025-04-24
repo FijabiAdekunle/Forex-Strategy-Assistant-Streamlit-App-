@@ -1,3 +1,7 @@
+@st.cache_data(ttl=60)  # Cache for 1 minute
+def get_cached_price(pair):
+    return get_live_price(pair)
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -38,7 +42,7 @@ initialize_session_state()
 # === LOGO AND HEADER ===
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    st.image("https://raw.githubusercontent.com/FijabiAdekunle/Forex-Strategy-Assistant-Streamlit-App-/main/Logo%20Images/TopTech_Logo.PNG", width=100)
+    st.image("https://i.postimg.cc/tJBWhFpx/Top-Tech-Logo.png", width=100)
 with col_title:
     st.markdown("""
     ### TopTech Digital Intelligence LLC
@@ -63,7 +67,7 @@ new_entry = st.number_input(
     value=float(st.session_state.entry_price),
     step=0.00001,
     format="%.5f",
-    key="entry_price_widget"  # Unique key
+    key="entry_price_widget", on_change=lambda: st.session_state.update({k: float(v) for k,v in st.session_state.items() if isinstance(v, (int, float))})
 )
 
 # Update session state only when value changes
@@ -77,10 +81,11 @@ atr_default = 14.50 if st.session_state.pair == "XAU/USD" else 0.00185
 
 st.session_state.atr = st.number_input(
     "ATR Value (in price terms)",
-    value=float(st.session_state.get("atr", atr_default)),  # Use dynamic default
-    step=0.00001 if st.session_state.pair != "XAU/USD" else 0.01,  # Adjust step based on pair
-    format="%.5f" if st.session_state.pair != "XAU/USD" else "%.2f",  # Show 2 decimals for gold
-    key="atr_input_unique"
+    value=float(st.session_state.get("atr", atr_default)),
+    step=0.00001 if st.session_state.pair != "XAU/USD" else 0.01,
+    format="%.5f" if st.session_state.pair != "XAU/USD" else "%.2f",
+    key="atr_input_unique",
+    on_change=lambda: st.session_state.update({k: float(v) for k,v in st.session_state.items() if isinstance(v, (int, float))})
 )
 with col2:
     st.session_state.sl_multiplier = st.number_input(
@@ -111,7 +116,8 @@ st.session_state.ema_fast = st.number_input(
     value=float(st.session_state.ema_fast),
     step=0.00001,
     format="%.5f",
-    key="ema_fast_unique"
+    key="ema_fast_unique",
+    on_change=lambda: st.session_state.update({k: float(v) for k,v in st.session_state.items() if isinstance(v, (int, float))})
 )
 
 st.session_state.ema_slow = st.number_input(
@@ -119,7 +125,8 @@ st.session_state.ema_slow = st.number_input(
     value=float(st.session_state.ema_slow),
     step=0.00001,
     format="%.5f",
-    key="ema_slow_unique"
+    key="ema_slow_unique",
+    on_change=lambda: st.session_state.update({k: float(v) for k,v in st.session_state.items() if isinstance(v, (int, float))})
 )
 
 
@@ -354,31 +361,30 @@ st.components.v1.iframe(
 # SIDEBAR TOOLS 
 # -------------------------------------------------------------------
 with st.sidebar:
-    st.header("🧰 Trading Toolkit")
-
-with st.sidebar:
-    st.header("🧮 Risk Tools")
+    st.header("📊 Trading Toolkit")
     
-    # Account balance 
-    account = st.number_input(
-        "Account Balance ($)", 
-        min_value=10, 
-        max_value=100000,
-        value=10000,
-        step=100
-    )
+    # Live Prices
+    with st.expander("Live Market Data", expanded=True):
+        current_price = get_live_price(st.session_state.pair)
+        if current_price:
+            st.metric(
+                f"Live {st.session_state.pair}",
+                f"{current_price:.5f}",
+                delta=f"{(current_price - st.session_state.entry_price):.5f}"
+            )
+        else:
+            st.warning("Using manual entry price")
     
-    # Smart position sizing
-    risk_pct = st.slider("Risk %", 0.5, 5.0, 1.0, step=0.1)
-    risk_amount = account * risk_pct / 100
-    distance_pips = abs(st.session_state.entry_price - sl_price) * (10000 if "USD" in st.session_state.pair else 1)
-    lots = risk_amount / (distance_pips * 10)
-    
-    st.metric(
-        "Max Position", 
-        f"{lots:.2f} lots",
-        help=f"Risking ${risk_amount:.2f}"
-    )
+    # Risk Calculator
+    with st.expander("Risk Management", expanded=True):
+        account = st.number_input(
+    "Account Balance ($)", 
+    min_value=10, 
+    max_value=100000,
+    value=10000,
+    step=100,
+    on_change=lambda: st.session_state.update({k: float(v) for k,v in st.session_state.items() if isinstance(v, (int, float))})
+)
     
     # Simple calendar link
     st.markdown("""
@@ -442,7 +448,7 @@ with st.sidebar:
 
 # =====  HELPER FUNCTION  =====
 def get_live_price(pair):
-    """Safely fetch live price with multiple fallbacks"""
+    """Robust price fetcher with multiple fallbacks"""
     symbol_map = {
         "EUR/USD": "EURUSD=X",
         "GBP/USD": "GBPUSD=X",
@@ -450,35 +456,18 @@ def get_live_price(pair):
     }
     
     try:
-        # Try Yahoo Finance first
-        data = yf.download(symbol_map[pair], period="1d", interval="15m", progress=False)
-        if not data.empty and not pd.isna(data["Close"].iloc[-1]):
+        # First try - 15m data
+        data = yf.Ticker(symbol_map[pair]).history(period="1d", interval="15m")
+        if not data.empty:
             return float(data["Close"].iloc[-1])
-        
-        # Fallback to 1-hour data if 15m fails
-        data = yf.download(symbol_map[pair], period="2d", interval="1h", progress=False)
+            
+        # Fallback - 1h data
+        data = yf.Ticker(symbol_map[pair]).history(period="1d", interval="1h")
         return float(data["Close"].iloc[-1]) if not data.empty else None
         
     except Exception as e:
-        st.error(f"Data fetch error: {str(e)}")
+        st.error(f"Data error: {str(e)[:100]}")  # Truncate long errors
         return None
-    
-with st.sidebar:
-    current_price = get_live_price(st.session_state.pair)
-    
-    if current_price is not None:
-        st.metric(
-            label=f"Live {st.session_state.pair}",
-            value=f"{current_price:.5f}",
-            delta=f"{(current_price - st.session_state.entry_price):.5f}"
-        )
-    else:
-        st.warning("Live data unavailable")
-        st.metric(
-            label=f"Manual {st.session_state.pair}",
-            value=f"{st.session_state.entry_price:.5f}"
-        )
-
 # === FOOTER ===
 st.markdown("""
 ---
